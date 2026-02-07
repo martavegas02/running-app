@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: running_analytics_db
+    environment:
+      POSTGRES_USER: strava_user
+      POSTGRES_PASSWORD: strava_secure_pass_2025
+      POSTGRES_DB: running_analytics
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U strava_user -d running_analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - running_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: running_analytics_backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://strava_user:strava_secure_pass_2025@postgres:5432/running_analytics
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - running_network
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: running_analytics_frontend
+    env_file: .env
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    networks:
+      - running_network
+    volumes:
+      - ./frontend:/app
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+
+volumes:
+  postgres_data:
+
+networks:
+  running_network:
+    driver: bridge
