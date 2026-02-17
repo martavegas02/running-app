@@ -153,8 +153,6 @@ def show_login_page():
         </div>
     """, unsafe_allow_html=True)
     
-    st.divider()
-    
     # Obtener usuarios disponibles
     available_users = []
     try:
@@ -186,30 +184,10 @@ def show_login_page():
                         st.rerun()
                     else:
                         st.error(f"❌ Error al iniciar sesión")
-            
-            st.divider()
-            st.markdown("### 🔐 O inicia sesión con un nuevo usuario")
+
         else:
-            st.markdown("### 🔐 Iniciar Sesión")
-        
-        username = st.text_input(
-            "👤 Nombre de usuario",
-            placeholder="Ingresa tu nombre de usuario de Strava",
-            label_visibility="collapsed"
-        )
-        
-        if st.button("🚀 Entrar", use_container_width=True):
-            if username:
-                with st.spinner("Verificando credenciales..."):
-                    if login_user(username):
-                        st.success("✅ ¡Sesión iniciada correctamente!")
-                        st.balloons()
-                        st.rerun()
-                    else:
-                        st.error(f"❌ Usuario '{username}' no encontrado. Primero debes vincular tu cuenta con Strava.")
-            else:
-                st.warning("⚠️ Por favor, ingresa tu nombre de usuario")
-    
+            st.warning("⚠️ No se encontraron usuarios. Por favor, vincula tu cuenta con Strava para crear un perfil.")
+      
     st.divider()
     
     # Instrucciones
