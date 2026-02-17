@@ -89,6 +89,21 @@ st.markdown("""
 # API URL
 API_BASE_URL = os.getenv("API_BASE_URL", "http://running_analytics_backend:8000/api/v1")
 
+# Mostrar URL del API para debugging
+if "localhost" not in API_BASE_URL and "running_analytics" not in API_BASE_URL:
+    # En Streamlit Cloud - mostrar configuración
+    st.sidebar.info(f"📡 API: {API_BASE_URL}")
+
+# Función para verificar conexión
+@st.cache_resource
+def check_api_connection():
+    """Verifica si el API está disponible"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/users/", timeout=3)
+        return response.status_code == 200
+    except:
+        return False
+
 # --- FUNCIONES DE AUTENTICACIÓN ---
 def login_user(username: str) -> bool:
     """
@@ -155,18 +170,19 @@ def show_login_page():
     
     # Obtener usuarios disponibles
     available_users = []
+    connection_error = False
     try:
         response = requests.get(f"{API_BASE_URL}/users/", timeout=5)
         if response.status_code == 200:
             available_users = response.json()
-    except:
-        pass
+    except Exception as e:
+        connection_error = True
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
         # Opción 1: Seleccionar usuario existente
-        if available_users:
+        if available_users and not connection_error:
             st.markdown("### 👥 Usuarios Disponibles")
             user_options = {u['username']: u['id'] for u in available_users}
             
@@ -184,30 +200,39 @@ def show_login_page():
                         st.rerun()
                     else:
                         st.error(f"❌ Error al iniciar sesión")
-
+            
+            st.divider()
+        
+        # Opción 2: Conectar con Strava
+        st.markdown("### 🔗 Conectar con Strava")
+        
+        strava_url = get_strava_login_url()
+        if strava_url:
+            st.markdown(f"""
+                <div style="text-align: center; padding: 10px;">
+                    <a href="{strava_url}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);">
+                        🔐 Iniciar Sesión con Strava
+                    </a>
+                </div>
+            """, unsafe_allow_html=True)
         else:
-            st.warning("⚠️ No se encontraron usuarios. Por favor, vincula tu cuenta con Strava para crear un perfil.")
-      
-    st.divider()
+            st.warning("⚠️ No se pudo conectar al servidor. Verifica la configuración del API.")
+            
+            # Mostrar configuración actual para debugging
+            with st.expander("🔧 Información técnica"):
+                st.code(f"API_BASE_URL = {API_BASE_URL}", language="python")
+                st.info("En Streamlit Cloud, configura la variable API_BASE_URL en Secrets/Environment")
+        
+        # Si no hay usuarios disponibles
+        if not available_users and not connection_error:
+            st.info("📭 No hay usuarios registrados. Inicia sesión con Strava para crear tu perfil.")
     
-    # Instrucciones
+    st.divider()
     st.markdown("""
         <div style="text-align: center; color: #999; padding: 40px 20px;">
-            <h3 style="color: #d0d0d8;">¿Primera vez aquí?</h3>
-            <p>Para poder acceder, primero debes vincular tu perfil de Strava:</p>
+            <p>📌 Usa Strava para crear tu cuenta y acceder a Running Analytics</p>
         </div>
     """, unsafe_allow_html=True)
-    
-    # Botón de Strava
-    strava_url = get_strava_login_url()
-    if strava_url:
-        st.markdown(f"""
-            <div style="text-align: center; padding: 20px;">
-                <a href="{strava_url}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);">
-                    🔗 Conectar con Strava
-                </a>
-            </div>
-        """, unsafe_allow_html=True)
 
 # --- FUNCIONES API ---
 @st.cache_data(ttl=300)
