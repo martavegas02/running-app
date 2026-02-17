@@ -218,3 +218,42 @@ async def check_strava_token_status(
         "scope": user.strava_scope,
         "has_refresh_token": bool(user.strava_refresh_token),
     }
+
+
+@router.post("/simple-login")
+async def simple_login(
+    username: str = Query(..., description="Nombre de usuario"),
+    db: Session = Depends(get_db),
+):
+    """
+    Login simple - valida que el usuario existe (para Streamlit)
+    
+    Args:
+        username: Nombre de usuario
+        db: Sesión de base de datos
+        
+    Returns:
+        Datos del usuario si existe
+        
+    Raises:
+        HTTPException 401: Si el usuario no existe
+    """
+    user = db.query(User).filter_by(username=username).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Usuario '{username}' no encontrado"
+        )
+    
+    # Crear JWT token
+    access_token = AuthService.create_access_token(
+        data={"sub": str(user.id), "user_id": user.id}
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": UserResponse.from_orm(user),
+        "message": "Inicio de sesión exitoso",
+    }

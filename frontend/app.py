@@ -17,6 +17,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Inicializar sesión de autenticación
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+    st.session_state.user_id = None
+    st.session_state.username = None
+    st.session_state.token = None
+
 # CSS Profesional - Tema Oscuro
 st.markdown("""
     <style>
@@ -81,6 +88,148 @@ st.markdown("""
 
 # API URL
 API_BASE_URL = os.getenv("API_BASE_URL", "http://running_analytics_backend:8000/api/v1")
+
+# --- FUNCIONES DE AUTENTICACIÓN ---
+def login_user(username: str) -> bool:
+    """
+    Intenta autenticar al usuario con el backend
+    """
+    try:
+        response = requests.post(
+            f"{API_BASE_URL.replace('/api/v1', '')}/auth/simple-login",
+            params={"username": username},
+            timeout=5
+        )
+        if response.status_code == 200:
+            data = response.json()
+            st.session_state.authenticated = True
+            st.session_state.user_id = data['user']['id']
+            st.session_state.username = data['user']['username']
+            st.session_state.token = data['access_token']
+            return True
+        else:
+            return False
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
+        return False
+
+def get_strava_login_url() -> str:
+    """
+    Obtiene la URL de login de Strava
+    """
+    try:
+        response = requests.get(
+            f"{API_BASE_URL.replace('/api/v1', '')}/auth/strava/login",
+            timeout=5
+        )
+        if response.status_code == 200:
+            data = response.json()
+            return data.get('oauth_url', '')
+    except:
+        pass
+    return ""
+
+def logout_user():
+    """
+    Cierra la sesión del usuario
+    """
+    st.session_state.authenticated = False
+    st.session_state.user_id = None
+    st.session_state.username = None
+    st.session_state.token = None
+    st.session_state.data_synced = False
+    st.session_state.last_synced_user = None
+
+def show_login_page():
+    """
+    Muestra la pantalla de login
+    """
+    st.markdown('<div class="title-section"><h1>🏃 Running Analytics</h1></div>', unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div style="text-align: center; padding: 40px 20px;">
+            <h2 style="color: #4db8a8; margin-bottom: 30px;">Bienvenido a tu plataforma de Running</h2>
+            <p style="color: #d0d0d8; font-size: 1.1rem;">Inicia sesión para acceder a tu dashboard de análisis</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.divider()
+    
+    # Obtener usuarios disponibles
+    available_users = []
+    try:
+        response = requests.get(f"{API_BASE_URL}/users/", timeout=5)
+        if response.status_code == 200:
+            available_users = response.json()
+    except:
+        pass
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        # Opción 1: Seleccionar usuario existente
+        if available_users:
+            st.markdown("### 👥 Usuarios Disponibles")
+            user_options = {u['username']: u['id'] for u in available_users}
+            
+            selected_user = st.selectbox(
+                "Selecciona un usuario",
+                options=list(user_options.keys()),
+                label_visibility="collapsed"
+            )
+            
+            if st.button("📊 Acceder", use_container_width=True, type="primary"):
+                with st.spinner("Verificando credenciales..."):
+                    if login_user(selected_user):
+                        st.success("✅ ¡Sesión iniciada correctamente!")
+                        st.balloons()
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Error al iniciar sesión")
+            
+            st.divider()
+            st.markdown("### 🔐 O inicia sesión con un nuevo usuario")
+        else:
+            st.markdown("### 🔐 Iniciar Sesión")
+        
+        username = st.text_input(
+            "👤 Nombre de usuario",
+            placeholder="Ingresa tu nombre de usuario de Strava",
+            label_visibility="collapsed"
+        )
+        
+        if st.button("🚀 Entrar", use_container_width=True):
+            if username:
+                with st.spinner("Verificando credenciales..."):
+                    if login_user(username):
+                        st.success("✅ ¡Sesión iniciada correctamente!")
+                        st.balloons()
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Usuario '{username}' no encontrado. Primero debes vincular tu cuenta con Strava.")
+            else:
+                st.warning("⚠️ Por favor, ingresa tu nombre de usuario")
+    
+    st.divider()
+    
+    # Instrucciones
+    st.markdown("""
+        <div style="text-align: center; color: #999; padding: 40px 20px;">
+            <h3 style="color: #d0d0d8;">¿Primera vez aquí?</h3>
+            <p>Para poder acceder, primero debes vincular tu perfil de Strava:</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Botón de Strava
+    strava_url = get_strava_login_url()
+    if strava_url:
+        st.markdown(f"""
+            <div style="text-align: center; padding: 20px;">
+                <a href="{strava_url}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #FF8F5E 100%); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);">
+                    🔗 Conectar con Strava
+                </a>
+            </div>
+        """, unsafe_allow_html=True)
 
 # --- FUNCIONES API ---
 @st.cache_data(ttl=300)
@@ -259,21 +408,25 @@ st.divider()
 
 # ===== SIDEBAR =====
 with st.sidebar:
+    # Botón de logout en la parte superior
+    if st.session_state.authenticated:
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown(f"👤 **{st.session_state.username}**")
+        with col2:
+            if st.button("🚪", help="Cerrar sesión", use_container_width=False):
+                logout_user()
+                st.rerun()
+        st.divider()
+    
     st.markdown("### 🏠 HOME")
     #st.divider()
-    users = get_users()
-    if users:
-        user_options = {u['username']: u['id'] for u in users}
-        
-        if len(user_options) == 1:
-            # Si hay un solo usuario, mostrarlo como texto (no selector)
-            selected_user = list(user_options.keys())[0]
-            st.markdown(f"<div style='padding: 12px 16px; background: #1a1a2e; border-radius: 8px; border: 1px solid #3d3d5c; color: #e0e0e8;'><span style='font-size: 0.85rem; color: #4db8a8;'>👤 Usuario:</span><br><span style='font-size: 1.1rem; font-weight: 600;'>{selected_user}</span></div>", unsafe_allow_html=True)
-        else:
-            # Si hay múltiples usuarios, mostrar selectbox
-            selected_user = st.selectbox("👤 Selecciona usuario:", list(user_options.keys()), label_visibility="collapsed")
-        
-        user_id = user_options[selected_user]
+    
+    # Usar el usuario autenticado en st.session_state
+    user_id = st.session_state.user_id
+    
+    if user_id:
+        st.markdown(f"<div style='padding: 12px 16px; background: #1a1a2e; border-radius: 8px; border: 1px solid #3d3d5c; color: #e0e0e8;'><span style='font-size: 0.85rem; color: #4db8a8;'>📍 Usuario Autenticado:</span><br><span style='font-size: 1.1rem; font-weight: 600;'>{st.session_state.username}</span></div>", unsafe_allow_html=True)
         
         if 'last_synced_user' not in st.session_state or st.session_state['last_synced_user'] != user_id:
             st.session_state['data_synced'] = False; st.session_state['last_synced_user'] = user_id; st.session_state['selected_user_id'] = user_id
@@ -284,9 +437,6 @@ with st.sidebar:
                 st.session_state['data_synced'] = True
                 if success: st.toast("✅ Datos actualizados", icon="🏃"); st.cache_data.clear(); st.rerun()
                 else: st.toast("❌ Error sincronizando", icon="⚠️")
-    else:
-        st.warning("⚠️ No hay usuarios configurados")
-        user_id = None
     
     st.divider()
     st.markdown("### 📊 NAVEGACIÓN")
@@ -340,13 +490,15 @@ with st.sidebar:
         if st.button(nav_section, key=f"nav_{nav_section}", use_container_width=True):
             st.session_state['current_section'] = nav_section
             st.rerun()
-    
-    section = st.session_state['current_section']
 
 # ===== CONTENIDO =====
-if not user_id:
-    st.error("Por favor, sincroniza primero tus datos")
+# Verificar si el usuario está autenticado
+if not st.session_state.authenticated:
+    show_login_page()
 else:
+    user_id = st.session_state.user_id
+    section = st.session_state['current_section']
+    
     stats = get_user_stats(user_id)
     activities = get_activities(user_id)
     
@@ -556,5 +708,5 @@ else:
                         st.rerun()
         else: st.info("Añade zapatillas.")
 
-st.divider()
-st.markdown("<div style='text-align: center; color: #999; padding: 20px;'><p>Running Analytics Hub v0.5</p></div>", unsafe_allow_html=True)
+    st.divider()
+    st.markdown("<div style='text-align: center; color: #999; padding: 20px;'><p>Running Analytics Hub v0.5</p></div>", unsafe_allow_html=True)
