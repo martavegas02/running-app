@@ -24,6 +24,28 @@ if 'authenticated' not in st.session_state:
     st.session_state.username = None
     st.session_state.token = None
 
+# Detectar si volvemos del callback de Strava
+query_params = st.query_params
+if 'token' in query_params and 'username' in query_params:
+    # Guardar la sesión automáticamente
+    st.session_state.authenticated = True
+    st.session_state.token = query_params['token']
+    st.session_state.username = query_params['username']
+    st.session_state.user_id = int(query_params.get('user_id', 0))
+    
+    # Limpiar los query params
+    st.query_params.clear()
+    
+    # Mostrar mensaje de bienvenida
+    st.success("✅ ¡Autenticación exitosa! Entrando...")
+    st.rerun()
+
+# Detectar errores en el callback
+if 'error' in query_params:
+    error_msg = query_params['error']
+    st.error(f"❌ Error de autenticación: {error_msg}")
+    st.stop()
+
 # CSS Profesional - Tema Oscuro
 st.markdown("""
     <style>
@@ -603,15 +625,7 @@ else:
             # HTML COMPACTADO PARA EVITAR ERROR
             st.markdown(f"""<div style="background: linear-gradient(135deg, #1a1a2e 0%, #0f1419 100%); padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(255, 107, 53, 0.15); border-left: 6px solid #FF6B35; margin-bottom: 20px;"><div style="font-size: 1.5rem; font-weight: 800; color: #f5f5ff;">{act['name']}</div><div style="color: #4db8a8; margin-bottom: 15px;">📅 {act['start_date'].strftime('%d %B %Y')}</div><div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;"><div style="text-align: center; background: rgba(77, 184, 168, 0.1); padding: 10px; border-radius: 8px;"><div style="font-weight: 700; color: #FF6B35; font-size: 1.2rem;">{act['distance']/1000:.2f} km</div><div style="font-size: 0.8rem; color: #d0d0d8;">Distancia</div></div><div style="text-align: center; background: rgba(77, 184, 168, 0.1); padding: 10px; border-radius: 8px;"><div style="font-weight: 700; color: #FF6B35; font-size: 1.2rem;">{int(act['duration']//60)} min</div><div style="font-size: 0.8rem; color: #d0d0d8;">Tiempo</div></div><div style="text-align: center; background: rgba(77, 184, 168, 0.1); padding: 10px; border-radius: 8px;"><div style="font-weight: 700; color: #FF6B35; font-size: 1.2rem;">{pace}</div><div style="font-size: 0.8rem; color: #d0d0d8;">Ritmo</div></div><div style="text-align: center; background: rgba(77, 184, 168, 0.1); padding: 10px; border-radius: 8px;"><div style="font-weight: 700; color: #FF6B35; font-size: 1.2rem;">{int(act['distance']/1000*70)}</div><div style="font-size: 0.8rem; color: #d0d0d8;">Kcal</div></div></div></div>""", unsafe_allow_html=True)
 
-            st.markdown("#### ⏱️ Desglose por Km")
-            if act['activity_type'].lower() == 'run' and act['distance']>=1000:
-                total_km = int(act['distance']/1000)
-                splits = [{"Km": str(i), "Vel": 3600/(1000/act['average_speed']), "order": i} for i in range(1, total_km+1)]
-                
-                st.warning("⚠️ Nota: Mostrando ritmo medio constante hasta conectar los parciales reales.")
-                c = alt.Chart(pd.DataFrame(splits)).mark_bar().encode(x=alt.X('Km', sort=alt.EncodingSortField(field="order")), y='Vel', color=alt.value('#cbd5e1')).properties(height=300)
-                st.altair_chart(c, use_container_width=True)
-            else: st.info("Datos insuficientes.")
+            
             
             st.divider()
             st.markdown("### 📚 Historial")
