@@ -24,28 +24,6 @@ if 'authenticated' not in st.session_state:
     st.session_state.username = None
     st.session_state.token = None
 
-# Detectar si volvemos del callback de Strava
-query_params = st.query_params
-if 'token' in query_params and 'username' in query_params:
-    # Guardar la sesión automáticamente
-    st.session_state.authenticated = True
-    st.session_state.token = query_params['token']
-    st.session_state.username = query_params['username']
-    st.session_state.user_id = int(query_params.get('user_id', 0))
-    
-    # Limpiar los query params
-    st.query_params.clear()
-    
-    # Mostrar mensaje de bienvenida
-    st.success("✅ ¡Autenticación exitosa! Entrando...")
-    st.rerun()
-
-# Detectar errores en el callback
-if 'error' in query_params:
-    error_msg = query_params['error']
-    st.error(f"❌ Error de autenticación: {error_msg}")
-    st.stop()
-
 # CSS Profesional - Tema Oscuro
 st.markdown("""
     <style>

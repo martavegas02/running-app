@@ -4,10 +4,8 @@ Endpoints: /auth/strava/login, /auth/strava/callback, /auth/refresh, /auth/me
 """
 import secrets
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-import os
-import urllib.parse
 
 from app.core.database import get_db
 from app.models.database import User
@@ -48,7 +46,6 @@ async def strava_callback(
     Callback de Strava después de autorización
     
     Intercambia el código por tokens y crea/actualiza el usuario
-    Redirige al frontend con el token
     
     Args:
         code: Código de autorización
@@ -56,21 +53,17 @@ async def strava_callback(
         db: Sesión de base de datos
         
     Returns:
-        Redirección al frontend con token
+        Access token JWT y datos del usuario
         
     Raises:
         HTTPException 400: Si la validación falla
         HTTPException 500: Si hay error en Strava
     """
-    # Obtener URL del frontend desde variables de entorno
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:8501")
-    
     # Validar estado CSRF
     if state not in csrf_states:
-        error_msg = "Invalid state token"
-        return RedirectResponse(
-            url=f"{frontend_url}?error={error_msg}",
-            status_code=302
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid state token. Posible ataque CSRF",
         )
     
     csrf_states.discard(state)
@@ -90,30 +83,19 @@ async def strava_callback(
             data={"sub": str(user.id), "user_id": user.id}
         )
         
-        # Codificar parámetros de URL
-        params = urllib.parse.urlencode({
-            "token": access_token,
-            "username": user.username,
-            "user_id": user.id,
-        })
-        
-        # Redirigir al frontend con los parámetros
-        return RedirectResponse(
-            url=f"{frontend_url}?{params}",
-            status_code=302
-        )
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": UserResponse.from_orm(user),
+            "message": "Autenticación exitosa",
+        }
         
     except ValueError as e:
-        error_msg = str(e)
-        return RedirectResponse(
-            url=f"{frontend_url}?error={urllib.parse.quote(error_msg)}",
-            status_code=302
-        )
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        error_msg = f"Error durante autenticación: {str(e)}"
-        return RedirectResponse(
-            url=f"{frontend_url}?error={urllib.parse.quote(error_msg)}",
-            status_code=302
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error durante autenticación: {str(e)}",
         )
 
 
