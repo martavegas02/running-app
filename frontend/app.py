@@ -419,7 +419,7 @@ st.divider()
 
 # ===== AUTO-LOGIN CON VARIABLE DE ENTORNO =====
 # Verificar si hay un usuario configurado para auto-login (Streamlit Cloud Secrets)
-AUTO_LOGIN_USERNAME = st.secrets.get("AUTO_LOGIN_USERNAME", "martavegas02")
+AUTO_LOGIN_USERNAME = st.secrets.get("AUTO_LOGIN_USERNAME", None)
 
 if AUTO_LOGIN_USERNAME and not st.session_state.auto_login_attempted and not st.session_state.authenticated:
     st.session_state.auto_login_attempted = True
