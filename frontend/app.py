@@ -113,7 +113,7 @@ def login_user(username: str, show_error: bool = True) -> bool:
     try:
         # Aumentar timeout a 15 segundos (Onrender carga lentamente)
         response = requests.post(
-            f"{API_BASE_URL.replace('/api/v1', '')}/auth/simple-login",
+            f"{API_BASE_URL}/auth/simple-login",
             params={"username": username},
             timeout=15
         )
@@ -428,7 +428,7 @@ if AUTO_LOGIN_USERNAME and not st.session_state.auto_login_attempted and not st.
         # Intentar login sin mostrar errores inicialmente
         try:
             response = requests.post(
-                f"{API_BASE_URL.replace('/api/v1', '')}/auth/simple-login",
+                f"{API_BASE_URL}/auth/simple-login",
                 params={"username": AUTO_LOGIN_USERNAME},
                 timeout=15
             )
@@ -443,7 +443,7 @@ if AUTO_LOGIN_USERNAME and not st.session_state.auto_login_attempted and not st.
             else:
                 error_msg = response.json().get('detail', response.text) if response.text else "Sin detalles"
                 st.error(f"❌ Error {response.status_code}: {error_msg}")
-                st.code(f"GET {API_BASE_URL.replace('/api/v1', '')}/auth/simple-login?username={AUTO_LOGIN_USERNAME}", language="http")
+                st.code(f"GET {API_BASE_URL}/auth/simple-login?username={AUTO_LOGIN_USERNAME}", language="http")
         except Exception as e:
             st.error(f"⚠️ Error de conexión: {str(e)}")
             st.info(f"API URL: {API_BASE_URL}")
