@@ -106,15 +106,16 @@ def check_api_connection():
         return False
 
 # --- FUNCIONES DE AUTENTICACIÓN ---
-def login_user(username: str) -> bool:
+def login_user(username: str, show_error: bool = True) -> bool:
     """
     Intenta autenticar al usuario con el backend
     """
     try:
+        # Aumentar timeout a 15 segundos (Onrender carga lentamente)
         response = requests.post(
             f"{API_BASE_URL.replace('/api/v1', '')}/auth/simple-login",
             params={"username": username},
-            timeout=5
+            timeout=15
         )
         if response.status_code == 200:
             data = response.json()
@@ -124,9 +125,12 @@ def login_user(username: str) -> bool:
             st.session_state.token = data['access_token']
             return True
         else:
+            if show_error:
+                st.error(f"❌ Usuario no encontrado: {username}")
             return False
     except Exception as e:
-        st.error(f"Error de conexión: {e}")
+        if show_error:
+            st.error(f"⚠️ Error de conexión con el servidor. Intenta en unos momentos.")
         return False
 
 def get_strava_login_url() -> str:
@@ -416,12 +420,14 @@ AUTO_LOGIN_USERNAME = os.getenv("AUTO_LOGIN_USERNAME", None)
 
 if AUTO_LOGIN_USERNAME and not st.session_state.auto_login_attempted and not st.session_state.authenticated:
     st.session_state.auto_login_attempted = True
-    with st.spinner("🔄 Inicializando sesión..."):
-        if login_user(AUTO_LOGIN_USERNAME):
+    with st.spinner("🔄 Inicializando sesión... (esto puede tardar 10-15 segundos)"):
+        # Intentar login sin mostrar errores (lo manejaremos nosotros)
+        if login_user(AUTO_LOGIN_USERNAME, show_error=False):
             st.success("✅ Sesión iniciada automáticamente")
             st.rerun()
         else:
-            st.error(f"❌ No se pudo iniciar sesión automática. Verifica AUTO_LOGIN_USERNAME en los Secrets")
+            # Si falla el auto-login, mostrar pantalla de login normal
+            pass
 
 # ===== SIDEBAR =====
 with st.sidebar:
