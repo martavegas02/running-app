@@ -88,7 +88,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# API URL
+# API URL - Always use Render in production, never Docker
+# In Streamlit Cloud, this MUST be set in Secrets as: API_BASE_URL=https://irunning-app-7mdo.onrender.com/api/v1
 API_BASE_URL = os.getenv("API_BASE_URL", "https://irunning-app-7mdo.onrender.com/api/v1")
 
 # Mostrar URL del API para debugging
