@@ -23,6 +23,7 @@ if 'authenticated' not in st.session_state:
     st.session_state.user_id = None
     st.session_state.username = None
     st.session_state.token = None
+    st.session_state.auto_login_attempted = False
 
 # CSS Profesional - Tema Oscuro
 st.markdown("""
@@ -408,6 +409,19 @@ def update_shoe_status(shoe_id, status):
 st.markdown('<div class="title-section"><h1>🏃 Running Analytics</h1></div>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle">Tu plataforma inteligente para analizar y mejorar tu rendimiento en running</p>', unsafe_allow_html=True)
 st.divider()
+
+# ===== AUTO-LOGIN CON VARIABLE DE ENTORNO =====
+# Verificar si hay un usuario configurado para auto-login (Streamlit Cloud Secrets)
+AUTO_LOGIN_USERNAME = os.getenv("AUTO_LOGIN_USERNAME", None)
+
+if AUTO_LOGIN_USERNAME and not st.session_state.auto_login_attempted and not st.session_state.authenticated:
+    st.session_state.auto_login_attempted = True
+    with st.spinner("🔄 Inicializando sesión..."):
+        if login_user(AUTO_LOGIN_USERNAME):
+            st.success("✅ Sesión iniciada automáticamente")
+            st.rerun()
+        else:
+            st.error(f"❌ No se pudo iniciar sesión automática. Verifica AUTO_LOGIN_USERNAME en los Secrets")
 
 # ===== SIDEBAR =====
 with st.sidebar:
