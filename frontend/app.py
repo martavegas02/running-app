@@ -312,8 +312,7 @@ def calculate_predictions(user_id):
     return None
 
 def sync_user_data_automatically(user_id):
-    backend_host = "http://running_analytics_backend:8000"
-    url = f"{backend_host}/sync/activities"
+    url = f"{API_BASE_URL}/sync/activities"
     try:
         payload = {"user_id": user_id}
         response = requests.post(url, json=payload, timeout=120)
