@@ -9,6 +9,7 @@ import base64
 import sqlite3
 import json
 
+# Version: 2.0.0 - Auto-login fixed with Render API v1 routing
 # Configuración de la página
 st.set_page_config(
     page_title="Running Analytics",
