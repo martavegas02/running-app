@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
 
@@ -14,14 +15,28 @@ from app.models.database import Base
 # Importar routers
 from app.routes import users, activities, gear, auth, sync, planning
 
-# Crear tablas
-Base.metadata.create_all(bind=engine)
+# Event handlers para startup/shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("[STARTUP] Inicializando base de datos...")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("[STARTUP] Base de datos inicializada correctamente")
+    except Exception as e:
+        print(f"[STARTUP] Error al inicializar BD: {e}")
+    
+    yield
+    
+    # Shutdown
+    print("[SHUTDOWN] Cerrando aplicación")
 
-# Inicializar FastAPI
+# Inicializar FastAPI CON lifespan
 app = FastAPI(
     title="Running Analytics Hub",
     description="API para sincronizar datos de Strava y generar análisis avanzados",
-    version="0.2.0"
+    version="0.2.0",
+    lifespan=lifespan
 )
 
 # CORS middleware
