@@ -88,7 +88,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # API URL
-API_BASE_URL = os.getenv("API_BASE_URL", "http://running_analytics_backend:8000/api/v1")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://irunning-app-7mdo.onrender.com/api/v1")
 
 # Mostrar URL del API para debugging
 if "localhost" not in API_BASE_URL and "running_analytics" not in API_BASE_URL:
@@ -143,7 +143,7 @@ def get_strava_login_url() -> str:
     """
     try:
         response = requests.get(
-            f"{API_BASE_URL.replace('/api/v1', '')}/auth/strava/login",
+            f"{API_BASE_URL}/auth/strava/login",
             timeout=5
         )
         if response.status_code == 200:
