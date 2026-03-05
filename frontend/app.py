@@ -426,13 +426,27 @@ if AUTO_LOGIN_USERNAME and not st.session_state.auto_login_attempted and not st.
     st.session_state.auto_login_attempted = True
     with st.spinner("🔄 Inicializando sesión... (esto puede tardar 10-15 segundos)"):
         # Intentar login sin mostrar errores inicialmente
-        if login_user(AUTO_LOGIN_USERNAME, show_error=False):
-            st.success("✅ Sesión iniciada automáticamente")
-            st.rerun()
-        else:
-            # Si falla el auto-login, mostrar mensaje de error específico
-            st.error(f"⚠️ No se pudo iniciar sesión automática con usuario '{AUTO_LOGIN_USERNAME}'. Verifica que el usuario exista en la BD.")
-            st.info(f"Usuario configurado: {AUTO_LOGIN_USERNAME}")
+        try:
+            response = requests.post(
+                f"{API_BASE_URL.replace('/api/v1', '')}/auth/simple-login",
+                params={"username": AUTO_LOGIN_USERNAME},
+                timeout=15
+            )
+            if response.status_code == 200:
+                data = response.json()
+                st.session_state.authenticated = True
+                st.session_state.user_id = data['user']['id']
+                st.session_state.username = data['user']['username']
+                st.session_state.token = data['access_token']
+                st.success("✅ Sesión iniciada automáticamente")
+                st.rerun()
+            else:
+                error_msg = response.json().get('detail', response.text) if response.text else "Sin detalles"
+                st.error(f"❌ Error {response.status_code}: {error_msg}")
+                st.code(f"GET {API_BASE_URL.replace('/api/v1', '')}/auth/simple-login?username={AUTO_LOGIN_USERNAME}", language="http")
+        except Exception as e:
+            st.error(f"⚠️ Error de conexión: {str(e)}")
+            st.info(f"API URL: {API_BASE_URL}")
 
 # ===== SIDEBAR =====
 with st.sidebar:
