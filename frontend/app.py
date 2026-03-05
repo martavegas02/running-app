@@ -90,7 +90,7 @@ st.markdown("""
 
 # API URL - Always use Render in production, never Docker
 # In Streamlit Cloud, this MUST be set in Secrets as: API_BASE_URL=https://irunning-app-7mdo.onrender.com/api/v1
-API_BASE_URL = os.getenv("API_BASE_URL", "https://irunning-app-7mdo.onrender.com/api/v1")
+API_BASE_URL = st.secrets.get("API_BASE_URL", "https://irunning-app-7mdo.onrender.com/api/v1")
 
 # Mostrar URL del API para debugging
 if "localhost" not in API_BASE_URL and "running_analytics" not in API_BASE_URL:
@@ -117,7 +117,7 @@ def login_user(username: str, show_error: bool = True) -> bool:
         response = requests.post(
             f"{API_BASE_URL}/auth/simple-login",
             params={"username": username},
-            timeout=30
+            timeout=45
         )
         if response.status_code == 200:
             data = response.json()
@@ -135,8 +135,6 @@ def login_user(username: str, show_error: bool = True) -> bool:
                 st.error(f"❌ Error {response.status_code}: {error_detail}")
             return False
     except Exception as e:
-        if show_error:
-            st.error(f"⚠️ Error de conexión: {str(e)}")
         return False
 
 def get_strava_login_url() -> str:
@@ -315,7 +313,7 @@ def sync_user_data_automatically(user_id):
     url = f"{API_BASE_URL}/sync/activities"
     try:
         payload = {"user_id": user_id}
-        response = requests.post(url, json=payload, timeout=120)
+        response = requests.post(url, json=payload, timeout=180)
         if response.status_code == 422:
             st.warning("⚠️ Probando método alternativo...")
             response = requests.post(f"{url}?user_id={user_id}", timeout=120)
@@ -421,7 +419,7 @@ st.divider()
 
 # ===== AUTO-LOGIN CON VARIABLE DE ENTORNO =====
 # Verificar si hay un usuario configurado para auto-login (Streamlit Cloud Secrets)
-AUTO_LOGIN_USERNAME = os.getenv("AUTO_LOGIN_USERNAME", None)
+AUTO_LOGIN_USERNAME = st.secrets.get("AUTO_LOGIN_USERNAME", "martavegas02")
 
 if AUTO_LOGIN_USERNAME and not st.session_state.auto_login_attempted and not st.session_state.authenticated:
     st.session_state.auto_login_attempted = True
