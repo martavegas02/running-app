@@ -117,7 +117,7 @@ def login_user(username: str, show_error: bool = True) -> bool:
         response = requests.post(
             f"{API_BASE_URL}/auth/simple-login",
             params={"username": username},
-            timeout=15
+            timeout=30
         )
         if response.status_code == 200:
             data = response.json()
@@ -351,7 +351,7 @@ def get_shoes_image_base64():
 shoes_img_base64 = get_shoes_image_base64()
 
 # ===== BASE DE DATOS PARA ZAPATILLAS =====
-DB_PATH = "/app/shoes.db" if os.path.exists("/app") else "shoes.db"
+DB_PATH = "/tmp/shoes.db"
 
 def init_shoes_db():
     """Inicializa la base de datos de zapatillas"""
