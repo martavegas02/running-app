@@ -33,13 +33,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Incluir routers
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(activities.router)
-app.include_router(gear.router)
-app.include_router(sync.router)
-app.include_router(planning.router)
+# Incluir routers CON prefijo /api/v1
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
+app.include_router(activities.router, prefix="/api/v1")
+app.include_router(gear.router, prefix="/api/v1")
+app.include_router(sync.router, prefix="/api/v1")
+app.include_router(planning.router, prefix="/api/v1")
 
 
 # ===== RUTAS =====
