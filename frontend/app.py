@@ -126,11 +126,15 @@ def login_user(username: str, show_error: bool = True) -> bool:
             return True
         else:
             if show_error:
-                st.error(f"❌ Usuario no encontrado: {username}")
+                try:
+                    error_detail = response.json().get('detail', response.text)
+                except:
+                    error_detail = response.text
+                st.error(f"❌ Error {response.status_code}: {error_detail}")
             return False
     except Exception as e:
         if show_error:
-            st.error(f"⚠️ Error de conexión con el servidor. Intenta en unos momentos.")
+            st.error(f"⚠️ Error de conexión: {str(e)}")
         return False
 
 def get_strava_login_url() -> str:
