@@ -421,13 +421,14 @@ AUTO_LOGIN_USERNAME = os.getenv("AUTO_LOGIN_USERNAME", None)
 if AUTO_LOGIN_USERNAME and not st.session_state.auto_login_attempted and not st.session_state.authenticated:
     st.session_state.auto_login_attempted = True
     with st.spinner("🔄 Inicializando sesión... (esto puede tardar 10-15 segundos)"):
-        # Intentar login sin mostrar errores (lo manejaremos nosotros)
+        # Intentar login sin mostrar errores inicialmente
         if login_user(AUTO_LOGIN_USERNAME, show_error=False):
             st.success("✅ Sesión iniciada automáticamente")
             st.rerun()
         else:
-            # Si falla el auto-login, mostrar pantalla de login normal
-            pass
+            # Si falla el auto-login, mostrar mensaje de error específico
+            st.error(f"⚠️ No se pudo iniciar sesión automática con usuario '{AUTO_LOGIN_USERNAME}'. Verifica que el usuario exista en la BD.")
+            st.info(f"Usuario configurado: {AUTO_LOGIN_USERNAME}")
 
 # ===== SIDEBAR =====
 with st.sidebar:
