@@ -20,7 +20,7 @@ st.set_page_config(
 
 # --- VARIABLES DESDE SECRETS ---
 # Forzamos el uso de las credenciales de Streamlit Cloud
-API_BASE_URL = st.secrets.get("API_BASE_URL", "https://irunning-app-7mdo.onrender.com/api/v1")
+API_BASE_URL = st.secrets["API_BASE_URL"]
 AUTO_LOGIN_USERNAME = st.secrets.get("AUTO_LOGIN_USERNAME", "martavegas02")
 DB_PATH = "/tmp/shoes.db"  # Ruta con permisos de escritura en la nube
 
@@ -55,8 +55,12 @@ st.markdown("""
 # --- FUNCIONES API (CON TIMEOUTS PARA RENDER) ---
 def login_user(username: str) -> bool:
     try:
-        # Timeout de 60s para que Render despierte
-        response = requests.post(f"{API_BASE_URL}/auth/simple-login", params={"username": username}, timeout=60)
+        # Aumentamos a 90 segundos porque Render es lento al arrancar
+        response = requests.post(
+            f"{API_BASE_URL}/auth/simple-login", 
+            params={"username": username}, 
+            timeout=90 
+        )
         if response.status_code == 200:
             data = response.json()
             st.session_state.update({
@@ -66,7 +70,8 @@ def login_user(username: str) -> bool:
                 'token': data['access_token']
             })
             return True
-    except: pass
+    except:
+        pass
     return False
 
 def sync_data(user_id):
