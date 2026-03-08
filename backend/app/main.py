@@ -1,103 +1,37 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-import os
-from dotenv import load_dotenv
-
-# Cargar variables de entorno
-load_dotenv()
-
-# Importar modelos y base de datos
-from app.core.database import init_db, engine
+from app.routes import users, activities, gear, auth, sync, planning
+from app.core.database import engine
 from app.models.database import Base
 
-# Importar routers
-from app.routes import users, activities, gear, auth, sync, planning
-
-# Event handlers para startup/shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    print("[STARTUP] Inicializando base de datos...")
-    try:
-        Base.metadata.create_all(bind=engine)
-        print("[STARTUP] Base de datos inicializada correctamente")
-    except Exception as e:
-        print(f"[STARTUP] Error al inicializar BD: {e}")
-    
+    Base.metadata.create_all(bind=engine)
     yield
-    
-    # Shutdown
-    print("[SHUTDOWN] Cerrando aplicación")
 
-# Inicializar FastAPI CON lifespan
-app = FastAPI(
-    title="Running Analytics Hub",
-    description="API para sincronizar datos de Strava y generar análisis avanzados",
-    version="0.2.0",
-    lifespan=lifespan
-)
+app = FastAPI(title="Running Analytics API", lifespan=lifespan)
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, cambiar a ["http://localhost:8501"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Incluir routers CON prefijo /api/v1
+# Rutas con prefijo
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(activities.router, prefix="/api/v1")
-app.include_router(gear.router, prefix="/api/v1")
 app.include_router(sync.router, prefix="/api/v1")
 app.include_router(planning.router, prefix="/api/v1")
 
-
-# ===== RUTAS =====
-@app.get("/", tags=["Health"])
+@app.get("/")
 async def root():
-    """
-    Endpoint raíz para verificar que la API está funcionando.
-    """
-    return {
-        "message": "Bienvenido a Running Analytics Hub",
-        "version": "0.1.0",
-        "status": "online"
-    }
+    return {"status": "online", "message": "API Running Analytics"}
 
-
-@app.get("/health", tags=["Health"])
+# Ruta de salud para Streamlit
+@app.get("/api/v1/health")
 async def health_check():
-    """
-    Health check de la API.
-    """
-    return {
-        "status": "healthy",
-        "message": "API is running"
-    }
-
-
-@app.get("/api/v1/", tags=["API"])
-async def api_root():
-    """
-    Raíz de la API v1.
-    """
-    return {
-        "message": "Running Analytics Hub API v1",
-        "endpoints": {
-            "users": "/api/v1/users",
-            "activities": "/api/v1/activities",
-            "gear": "/api/v1/gear",
-            "sync": "/api/v1/sync",
-            "analytics": "/api/v1/analytics"
-        }
-    }
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return {"status": "healthy"}
