@@ -20,7 +20,7 @@ st.set_page_config(
 # --- VARIABLES DESDE SECRETS (MODO PORTAFOLIO) ---
 # Esto elimina la dependencia de variables locales y usa la configuración de Streamlit Cloud
 API_BASE_URL = st.secrets["API_BASE_URL"]
-AUTO_LOGIN_USERNAME = st.secrets["AUTO_LOGIN_USERNAME"]
+AUTO_LOGIN_USERNAME = st.secrets.get("AUTO_LOGIN_USERNAME", "martavegas02")
 DB_PATH = "/tmp/shoes.db"  # Directorio con permisos de escritura en Streamlit Cloud
 
 # --- INICIALIZACIÓN DE ESTADOS ---
